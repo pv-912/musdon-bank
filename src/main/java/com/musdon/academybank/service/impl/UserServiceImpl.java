@@ -11,6 +11,7 @@ import com.musdon.academybank.dto.BankResponse;
 import com.musdon.academybank.dto.CreditDebitRequest;
 import com.musdon.academybank.dto.EmailDetails;
 import com.musdon.academybank.dto.EnquiryRequest;
+import com.musdon.academybank.dto.TransactionDto;
 import com.musdon.academybank.dto.TransferRequest;
 import com.musdon.academybank.dto.UserRequest;
 import com.musdon.academybank.entity.User;
@@ -25,7 +26,10 @@ public class UserServiceImpl implements UserService{
 	
 	@Autowired
 	EmailService emailService;
-
+	
+	@Autowired
+	TransactionService transactionService;
+	
 	@Override
 	public BankResponse createAccount(UserRequest userRequest) {
 		/**
@@ -137,6 +141,14 @@ public class UserServiceImpl implements UserService{
 		userToCredit.setAccountBalance(userToCredit.getAccountBalance().add(creditDebitRequest.getAmount()));
 		userRepository.save(userToCredit);
 		
+		// Save Transaction
+		TransactionDto transactionDto = TransactionDto.builder()
+										.accountNumber(userToCredit.getAccountNumber())
+										.transactionType("CREDIT")
+										.amount(creditDebitRequest.getAmount())
+										.build();
+		transactionService.saveTransaction(transactionDto);
+		
 		return BankResponse.builder()
 				.responseCode(AccountUtils.CREDIT_SUCCESS_CODE)
 				.responseMessage(AccountUtils.CREDIT_SUCCESS_MESSAGE)
@@ -174,6 +186,13 @@ public class UserServiceImpl implements UserService{
 		
 		userToDebit.setAccountBalance(userToDebit.getAccountBalance().subtract(creditDebitRequest.getAmount()));
 		userRepository.save(userToDebit);
+		
+		TransactionDto transactionDto = TransactionDto.builder()
+				.accountNumber(userToDebit.getAccountNumber())
+				.transactionType("DEBIT")
+				.amount(creditDebitRequest.getAmount())
+				.build();
+		transactionService.saveTransaction(transactionDto);
 		
 		return BankResponse.builder()
 				.responseCode(AccountUtils.DEBIT_SUCCESS_CODE)
@@ -216,6 +235,13 @@ public class UserServiceImpl implements UserService{
 										.build();
 		
 		emailService.sendEmailAlerts(debitAlertDetails);
+		
+		TransactionDto transactionDtoSource = TransactionDto.builder()
+				.accountNumber(sourceAccountUser.getAccountNumber())
+				.transactionType("DEBIT")
+				.amount(transferRequest.getAmount())
+				.build();
+		transactionService.saveTransaction(transactionDtoSource);
 			
 		User destAccountUser = userRepository.findByAccountNumber(transferRequest.getDestinationAccountNumber());
 		destAccountUser.setAccountBalance(destAccountUser.getAccountBalance().add(transferRequest.getAmount()));
@@ -226,6 +252,13 @@ public class UserServiceImpl implements UserService{
 				.recipient(destAccountUser.getEmail())
 				.messageBody("The sum of " + transferRequest.getAmount() + " has been credited from your account! Your current balance is " + destAccountUser.getAccountBalance())
 				.build();
+		
+		TransactionDto transactionDtoDest = TransactionDto.builder()
+				.accountNumber(destAccountUser.getAccountNumber())
+				.transactionType("CREDIT")
+				.amount(transferRequest.getAmount())
+				.build();
+		transactionService.saveTransaction(transactionDtoDest);
 
 		emailService.sendEmailAlerts(creditAlertDetails);
 		return BankResponse.builder()
