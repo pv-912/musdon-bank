@@ -18,6 +18,7 @@ import com.itextpdf.text.Rectangle;
 import com.itextpdf.text.pdf.PdfPCell;
 import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfWriter;
+import com.musdon.academybank.dto.EmailDetails;
 import com.musdon.academybank.entity.Transaction;
 import com.musdon.academybank.entity.User;
 import com.musdon.academybank.repository.TransactionRepository;
@@ -38,6 +39,7 @@ public class BankStatement {
 	
 	private TransactionRepository transactionRepository;
 	private UserRepository userRepository;
+	private EmailService emailService;
 	
 	private static final String FILE = "/Users/prasverm/Documents/eclipse-workspace/java-academy-bank/statement/statement.pdf";
 	
@@ -146,6 +148,16 @@ public class BankStatement {
 		document.add(transactionTable);
 		
 		document.close();
+		
+		// Send email with attachment
+		EmailDetails emailDetails = EmailDetails.builder()
+									.recipient(user.getEmail())
+									.subject("BANK STATEMENT")
+									.messageBody("Kindly fine your requested account statement attached!!")
+									.attachment(FILE)
+									.build();
+		
+		emailService.sendEmailWithAttachment(emailDetails);
 		
 		return transactionList;
 	}
