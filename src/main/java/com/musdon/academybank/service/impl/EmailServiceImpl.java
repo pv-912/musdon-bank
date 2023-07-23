@@ -2,8 +2,6 @@ package com.musdon.academybank.service.impl;
 
 import java.io.File;
 
-import javax.management.RuntimeErrorException;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
